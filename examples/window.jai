@@ -4,6 +4,9 @@
 
 #import,file "../module.jai";
 
+//#import,file "../module.jai"(USE_STATIC_LIB=true);
+//#import,file "../module.jai"(USE_STATIC_LIB=false);
+
 main :: () {
   result := glfwInit();
   defer glfwTerminate();

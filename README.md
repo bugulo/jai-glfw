@@ -23,4 +23,8 @@ To simplify the compilation of libraries, [generate.jai](./generate.jai) require
 
 ## Dynamic linking
 
-By default, static linking is enabled. If you prefer dynamic linking, you can refer to [module.jai](./module.jai), where you can find `GLFW_SHARED` to toggle this behavior.
+By default, static linking is enabled. If you prefer dynamic linking, you can utilize optional module parameter to toggle this behavior:
+
+```jai
+#import "glfw"(USE_STATIC_LIB=false);
+```

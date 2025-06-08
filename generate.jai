@@ -167,14 +167,14 @@ compile_libraries :: (source_dir: string, output_dir: string) -> success := fals
 }
 
 BINDINGS_FOOTER :: #string END
-#if GLFW_SHARED {
-    #if OS == .WINDOWS  glfw :: #library "windows/glfw3";
-    #if OS == .LINUX    glfw :: #library "linux/libglfw";
-    #if OS == .MACOS    glfw :: #library "macos/libglfw";
-} else {
+#if USE_STATIC_LIB {
     #if OS == .WINDOWS  glfw :: #library,no_dll "windows/glfw3_static";
     #if OS == .LINUX    glfw :: #library,no_dll "linux/libglfw3";
     #if OS == .MACOS    glfw :: #library,no_dll "macos/libglfw3";
+} else {
+    #if OS == .WINDOWS  glfw :: #library "windows/glfw3";
+    #if OS == .LINUX    glfw :: #library "linux/libglfw";
+    #if OS == .MACOS    glfw :: #library "macos/libglfw";
 }
 END
 
