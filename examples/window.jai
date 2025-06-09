@@ -20,6 +20,9 @@ main :: () {
   defer glfwDestroyWindow(window);
 
   glfwMakeContextCurrent(window);
+
+  gl_load(*gl, glfwGetProcAddress.(*void));
+
   glfwSetWindowUserPointer(window, *context);
   glfwSetCursorPosCallback(window, glfwCursorCallback);
 
