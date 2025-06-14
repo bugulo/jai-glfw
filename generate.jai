@@ -241,7 +241,7 @@ recreate_directory :: (name: string) -> bool {
             return false;
         }
     }
-    return make_directory_if_it_does_not_exist(name);
+    return make_directory_if_it_does_not_exist(name, recursive = true);
 }
 
 #import "File";
