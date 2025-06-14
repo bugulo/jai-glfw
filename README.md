@@ -3,7 +3,7 @@
 ![Jai Version](https://img.shields.io/badge/Jai-0.2.014-blue)
 ![GLFW Version](https://img.shields.io/badge/GLFW-3.4.0-blue)
 
-Jai bindings for [GLFW](https://github.com/glfw/glfw). Tested and compatible with **Windows**, **Linux** & **OSX**.
+Jai bindings for [GLFW](https://github.com/glfw/glfw). Compatible with **Windows (x64, ARM64)**, **Linux (x64, ARM64)** & **OSX (Universal)**
 
 ## Generate
 The repository contains pre-built binding files and compiled libraries for supported platforms. To compile for an older version of GLFW or target different forks of GLFW, you can change the following constants in [generate.jai](./generate.jai) and rerun it with `jai generate.jai`:

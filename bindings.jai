@@ -5395,11 +5395,15 @@ glfwGetRequiredInstanceExtensions :: (count: *u32) -> **u8 #foreign glfw;
 #scope_file
 
 #if USE_STATIC_LIB {
-    #if OS == .WINDOWS  glfw :: #library,no_dll "windows/glfw3_static";
-    #if OS == .LINUX    glfw :: #library,no_dll "linux/libglfw3";
-    #if OS == .MACOS    glfw :: #library,no_dll "macos/libglfw3";
+    #if OS == .MACOS                        glfw :: #library,no_dll "macos/libglfw3";
+    #if OS == .LINUX    && CPU == .X64      glfw :: #library,no_dll "linux/x64/libglfw3";
+    #if OS == .LINUX    && CPU == .ARM64    glfw :: #library,no_dll "linux/arm64/libglfw3";
+    #if OS == .WINDOWS  && CPU == .X64      glfw :: #library,no_dll "windows/x64/glfw3_static";
+    #if OS == .WINDOWS  && CPU == .ARM64    glfw :: #library,no_dll "windows/arm64/glfw3_static";
 } else {
-    #if OS == .WINDOWS  glfw :: #library "windows/glfw3";
-    #if OS == .LINUX    glfw :: #library "linux/libglfw";
-    #if OS == .MACOS    glfw :: #library "macos/libglfw";
+    #if OS == .MACOS                        glfw :: #library "macos/libglfw";
+    #if OS == .LINUX    && CPU == .X64      glfw :: #library "linux/x64/libglfw";
+    #if OS == .LINUX    && CPU == .ARM64    glfw :: #library "linux/arm64/libglfw";
+    #if OS == .WINDOWS  && CPU == .X64      glfw :: #library "windows/x64/glfw3";
+    #if OS == .WINDOWS  && CPU == .ARM64    glfw :: #library "windows/arm64/glfw3";
 }

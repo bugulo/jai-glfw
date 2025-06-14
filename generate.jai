@@ -21,7 +21,9 @@ SOURCE_VERSION_PATCH := 0;
 generate :: (args: [] string) -> success := false, error := "" {
     current_dir := get_absolute_path("./");
 
-    keep_source_files := array_find(args, "-keep_source");
+    debug_build := array_find(args, "-debug");
+
+    auto_downloaded := false;
 
     source_dir := tprint("%/glfw", current_dir);
     if !file_exists(source_dir) {
@@ -30,29 +32,36 @@ generate :: (args: [] string) -> success := false, error := "" {
 
         if run_command("git", "checkout", SOURCE_GIT_COMMIT, working_directory = source_dir).exit_code != 0
             return error = "Failed to checkout to specified SOURCE_GIT_COMMIT";
+
+        auto_downloaded = true;
     }
 
     output_dir: string;
-    #if OS == .WINDOWS {
-        output_dir = tprint("%/windows", current_dir);
-    } else #if OS == .LINUX {
-        output_dir = tprint("%/linux", current_dir);
-    } else #if OS == .MACOS {
+    #if OS == .MACOS {
         output_dir = tprint("%/macos", current_dir);
+    } else #if OS == .LINUX && CPU == .X64 {
+        output_dir = tprint("%/linux/x64", current_dir);
+    } else #if OS == .LINUX && CPU == .ARM64 {
+        output_dir = tprint("%/linux/arm64", current_dir);
+    } else #if OS == .WINDOWS && CPU == .X64 {
+        output_dir = tprint("%/windows/x64", current_dir);
+    } else #if OS == .WINDOWS && CPU == .ARM64 {
+        output_dir = tprint("%/windows/arm64", current_dir);
     } else {
         return error = "Generation is not supported on this platform";
     }
 
-    success, error := compile_libraries(source_dir, output_dir);
+    success, error := compile_libraries(source_dir, output_dir, debug_build);
 
-    if !keep_source_files {
+    // If the user provides a source manually, they may want to keep it after generation
+    if auto_downloaded {
         delete_directory(source_dir);
     }
 
     return success, error;
 }
 
-compile_libraries :: (source_dir: string, output_dir: string) -> success := false, error := "" {
+compile_libraries :: (source_dir: string, output_dir: string, debug_build: bool) -> success := false, error := "" {
     build_dir := tprint("%/build", source_dir);
 
     if !file_exists(source_dir)
@@ -66,9 +75,9 @@ compile_libraries :: (source_dir: string, output_dir: string) -> success := fals
         shared_lib_dir := tprint("%/shared", build_dir);
         static_lib_dir := tprint("%/static", build_dir);
 
-        if !build_glfw(source_dir, build_dir, shared_lib_dir, .["-DBUILD_SHARED_LIBS=ON"])
+        if !build_glfw(source_dir, build_dir, shared_lib_dir, debug_build, .["-DBUILD_SHARED_LIBS=ON"])
             return error = "Could not compile shared library";
-        if !build_glfw(source_dir, build_dir, static_lib_dir, .["-DBUILD_SHARED_LIBS=OFF"])
+        if !build_glfw(source_dir, build_dir, static_lib_dir, debug_build, .["-DBUILD_SHARED_LIBS=OFF"])
             return error = "Could not compile static library";
 
         success := copy_file(tprint("%/glfw3.dll", shared_lib_dir), tprint("%/glfw3.dll", output_dir));
@@ -82,9 +91,9 @@ compile_libraries :: (source_dir: string, output_dir: string) -> success := fals
 
     } else #if OS == .LINUX {
         libs_dir := tprint("%/libs", build_dir);
-        if !build_glfw(source_dir, build_dir, libs_dir, .["-DBUILD_SHARED_LIBS=ON"])
+        if !build_glfw(source_dir, build_dir, libs_dir, debug_build, .["-DBUILD_SHARED_LIBS=ON"])
             return error = "Could not compile shared library";
-        if !build_glfw(source_dir, build_dir, libs_dir, .["-DBUILD_SHARED_LIBS=OFF"])
+        if !build_glfw(source_dir, build_dir, libs_dir, debug_build, .["-DBUILD_SHARED_LIBS=OFF"])
             return error = "Could not compile static library";
 
         // Copy libraries into output directory & create missing symlinks to dynamic library
@@ -100,15 +109,15 @@ compile_libraries :: (source_dir: string, output_dir: string) -> success := fals
 
     } else #if OS == .MACOS {
         arm_libs_dir := tprint("%/arm", build_dir);
-        if !build_glfw(source_dir, build_dir, arm_libs_dir, .["-DBUILD_SHARED_LIBS=ON", "-DCMAKE_OSX_ARCHITECTURES=arm64",  "-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0"])
+        if !build_glfw(source_dir, build_dir, arm_libs_dir, debug_build, .["-DBUILD_SHARED_LIBS=ON", "-DCMAKE_OSX_ARCHITECTURES=arm64",  "-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0"])
             return error = "Could not compile shared ARM library";
-        if !build_glfw(source_dir, build_dir, arm_libs_dir, .["-DBUILD_SHARED_LIBS=OFF", "-DCMAKE_OSX_ARCHITECTURES=arm64",  "-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0"])
+        if !build_glfw(source_dir, build_dir, arm_libs_dir, debug_build, .["-DBUILD_SHARED_LIBS=OFF", "-DCMAKE_OSX_ARCHITECTURES=arm64",  "-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0"])
             return error = "Could not compile static ARM library";
 
         x64_libs_dir := tprint("%/x86_64", build_dir);
-        if !build_glfw(source_dir, build_dir, x64_libs_dir, .["-DBUILD_SHARED_LIBS=ON", "-DCMAKE_OSX_ARCHITECTURES=x86_64", "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"])
+        if !build_glfw(source_dir, build_dir, x64_libs_dir, debug_build, .["-DBUILD_SHARED_LIBS=ON", "-DCMAKE_OSX_ARCHITECTURES=x86_64", "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"])
             return error = "Could not compile shared x86_64 library";
-        if !build_glfw(source_dir, build_dir, x64_libs_dir, .["-DBUILD_SHARED_LIBS=OFF", "-DCMAKE_OSX_ARCHITECTURES=x86_64", "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"])
+        if !build_glfw(source_dir, build_dir, x64_libs_dir, debug_build, .["-DBUILD_SHARED_LIBS=OFF", "-DCMAKE_OSX_ARCHITECTURES=x86_64", "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"])
             return error = "Could not compile static x86_64 library";
 
         uni_libs_dir := tprint("%/universal", build_dir);
@@ -168,17 +177,23 @@ compile_libraries :: (source_dir: string, output_dir: string) -> success := fals
 
 BINDINGS_FOOTER :: #string END
 #if USE_STATIC_LIB {
-    #if OS == .WINDOWS  glfw :: #library,no_dll "windows/glfw3_static";
-    #if OS == .LINUX    glfw :: #library,no_dll "linux/libglfw3";
-    #if OS == .MACOS    glfw :: #library,no_dll "macos/libglfw3";
+    #if OS == .MACOS                        glfw :: #library,no_dll "macos/libglfw3";
+    #if OS == .LINUX    && CPU == .X64      glfw :: #library,no_dll "linux/x64/libglfw3";
+    #if OS == .LINUX    && CPU == .ARM64    glfw :: #library,no_dll "linux/arm64/libglfw3";
+    #if OS == .WINDOWS  && CPU == .X64      glfw :: #library,no_dll "windows/x64/glfw3_static";
+    #if OS == .WINDOWS  && CPU == .ARM64    glfw :: #library,no_dll "windows/arm64/glfw3_static";
 } else {
-    #if OS == .WINDOWS  glfw :: #library "windows/glfw3";
-    #if OS == .LINUX    glfw :: #library "linux/libglfw";
-    #if OS == .MACOS    glfw :: #library "macos/libglfw";
+    #if OS == .MACOS                        glfw :: #library "macos/libglfw";
+    #if OS == .LINUX    && CPU == .X64      glfw :: #library "linux/x64/libglfw";
+    #if OS == .LINUX    && CPU == .ARM64    glfw :: #library "linux/arm64/libglfw";
+    #if OS == .WINDOWS  && CPU == .X64      glfw :: #library "windows/x64/glfw3";
+    #if OS == .WINDOWS  && CPU == .ARM64    glfw :: #library "windows/arm64/glfw3";
 }
 END
 
-build_glfw :: (source_dir: string, build_dir: string, output_dir: string, args: [] string) -> bool {
+build_glfw :: (source_dir: string, build_dir: string, output_dir: string, debug_build: bool, args: [] string) -> bool {
+    build_type := ifx debug_build then "Debug" else "Release";
+
     config_command: [..] string;
     array_add(*config_command, "cmake");
     array_add(*config_command, source_dir);
@@ -200,6 +215,7 @@ build_glfw :: (source_dir: string, build_dir: string, output_dir: string, args: 
         array_add(*config_command, tprint("-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=%", output_dir));
     }
 
+    array_add(*config_command, tprint("-DCMAKE_BUILD_TYPE=%", build_type));
     array_add(*config_command, ..args);
 
     cmake_config_dir := tprint("%/cmake", build_dir);
@@ -209,7 +225,14 @@ build_glfw :: (source_dir: string, build_dir: string, output_dir: string, args: 
     if run_command(..config_command, working_directory = cmake_config_dir).exit_code != 0
         return false;
 
-    return run_command("cmake", "--build", cmake_config_dir).exit_code == 0;
+    build_command: [..] string;
+    array_add(*build_command, "cmake", "--build", cmake_config_dir);
+
+    if OS == .WINDOWS {
+        array_add(*build_command, tprint("--config=%", build_type));
+    }
+
+    return run_command(..build_command).exit_code == 0;
 }
 
 recreate_directory :: (name: string) -> bool {
