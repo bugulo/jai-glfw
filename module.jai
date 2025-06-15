@@ -10,4 +10,4 @@
     #system_library,link_always "IOKit";
 }
 
-#load "bindings.jai";
+#load "dist/bindings.jai";

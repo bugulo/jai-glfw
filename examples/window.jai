@@ -4,8 +4,13 @@
 
 #import,file "../module.jai";
 
-//#import,file "../module.jai"(USE_STATIC_LIB=true);
-//#import,file "../module.jai"(USE_STATIC_LIB=false);
+// You can also utilize optional module parameters:
+// #import,file "../module.jai"(USE_STATIC_LIB=true);
+// #import,file "../module.jai"(USE_STATIC_LIB=false);
+
+// Or you can load the bindings directly:
+// USE_STATIC_LIB :: false;
+// #load "../dist/bindings.jai";
 
 main :: () {
   result := glfwInit();
