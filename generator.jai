@@ -7,6 +7,8 @@ Generate_GLFW_Options :: struct {
     // If you want to use a custom GLFW source, it has to be located in the specified source_dir, and source_download needs to be disabled.
     // - Make sure to adjust the source_version_ options in this case as well.
     source_download := true;
+    source_delete   := true; // Delete specified source_dir after generation is done (ignored if source_download is false)
+
     source_dir:         string;
     source_git_url:     string = "https://github.com/glfw/glfw";
     source_git_commit:  string = "7b6aead9fb88b3623e3b3725ebb42670cbe4c579";
@@ -32,8 +34,8 @@ generate :: (options: Generate_GLFW_Options) -> success := false, error := "" {
 
     success, error := compile_libraries(options);
 
-    // If the user provides a source manually, they most likely want to keep it after the generation is done
-    if options.source_download {
+    // Don't delete source_dir if user provided own source
+    if options.source_download && options.source_delete {
         delete_directory(options.source_dir);
     }
 
