@@ -16,6 +16,8 @@ Generate_GLFW_Options :: struct {
     source_version_major: u8 = 3;
     source_version_minor: u8 = 4;
     source_version_patch: u8 = 0;
+
+    max_parallel_jobs := 0;
 }
 
 generate :: (options: Generate_GLFW_Options) -> success := false, error := "" {
@@ -74,9 +76,9 @@ compile_libraries :: (options: Generate_GLFW_Options) -> success := false, error
         shared_lib_dir := tprint("%/shared", build_dir);
         static_lib_dir := tprint("%/static", build_dir);
 
-        if !build_glfw(source_dir, build_dir, shared_lib_dir, options.debug_build, .["-DBUILD_SHARED_LIBS=ON"])
+        if !build_glfw(source_dir, build_dir, shared_lib_dir, options, .["-DBUILD_SHARED_LIBS=ON"])
             return error = "Could not compile shared library";
-        if !build_glfw(source_dir, build_dir, static_lib_dir, options.debug_build, .["-DBUILD_SHARED_LIBS=OFF"])
+        if !build_glfw(source_dir, build_dir, static_lib_dir, options, .["-DBUILD_SHARED_LIBS=OFF"])
             return error = "Could not compile static library";
 
         success := copy_file(tprint("%/glfw3.dll", shared_lib_dir), tprint("%/glfw3.dll", libs_output_dir));
@@ -90,9 +92,9 @@ compile_libraries :: (options: Generate_GLFW_Options) -> success := false, error
 
     } else #if OS == .LINUX {
         libs_dir := tprint("%/libs", build_dir);
-        if !build_glfw(source_dir, build_dir, libs_dir, options.debug_build, .["-DBUILD_SHARED_LIBS=ON"])
+        if !build_glfw(source_dir, build_dir, libs_dir, options, .["-DBUILD_SHARED_LIBS=ON"])
             return error = "Could not compile shared library";
-        if !build_glfw(source_dir, build_dir, libs_dir, options.debug_build, .["-DBUILD_SHARED_LIBS=OFF"])
+        if !build_glfw(source_dir, build_dir, libs_dir, options, .["-DBUILD_SHARED_LIBS=OFF"])
             return error = "Could not compile static library";
 
         // Copy libraries into output directory & create missing symlinks to dynamic library
@@ -108,15 +110,15 @@ compile_libraries :: (options: Generate_GLFW_Options) -> success := false, error
 
     } else #if OS == .MACOS {
         arm_libs_dir := tprint("%/arm", build_dir);
-        if !build_glfw(source_dir, build_dir, arm_libs_dir, options.debug_build, .["-DBUILD_SHARED_LIBS=ON", "-DCMAKE_OSX_ARCHITECTURES=arm64",  "-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0"])
+        if !build_glfw(source_dir, build_dir, arm_libs_dir, options, .["-DBUILD_SHARED_LIBS=ON", "-DCMAKE_OSX_ARCHITECTURES=arm64",  "-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0"])
             return error = "Could not compile shared ARM library";
-        if !build_glfw(source_dir, build_dir, arm_libs_dir, options.debug_build, .["-DBUILD_SHARED_LIBS=OFF", "-DCMAKE_OSX_ARCHITECTURES=arm64",  "-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0"])
+        if !build_glfw(source_dir, build_dir, arm_libs_dir, options, .["-DBUILD_SHARED_LIBS=OFF", "-DCMAKE_OSX_ARCHITECTURES=arm64",  "-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0"])
             return error = "Could not compile static ARM library";
 
         x64_libs_dir := tprint("%/x86_64", build_dir);
-        if !build_glfw(source_dir, build_dir, x64_libs_dir, options.debug_build, .["-DBUILD_SHARED_LIBS=ON", "-DCMAKE_OSX_ARCHITECTURES=x86_64", "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"])
+        if !build_glfw(source_dir, build_dir, x64_libs_dir, options, .["-DBUILD_SHARED_LIBS=ON", "-DCMAKE_OSX_ARCHITECTURES=x86_64", "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"])
             return error = "Could not compile shared x86_64 library";
-        if !build_glfw(source_dir, build_dir, x64_libs_dir, options.debug_build, .["-DBUILD_SHARED_LIBS=OFF", "-DCMAKE_OSX_ARCHITECTURES=x86_64", "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"])
+        if !build_glfw(source_dir, build_dir, x64_libs_dir, options, .["-DBUILD_SHARED_LIBS=OFF", "-DCMAKE_OSX_ARCHITECTURES=x86_64", "-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13"])
             return error = "Could not compile static x86_64 library";
 
         uni_libs_dir := tprint("%/universal", build_dir);
@@ -190,8 +192,8 @@ BINDINGS_FOOTER :: #string END
 }
 END
 
-build_glfw :: (source_dir: string, build_dir: string, output_dir: string, debug_build: bool, args: [] string) -> bool {
-    build_type := ifx debug_build then "Debug" else "Release";
+build_glfw :: (source_dir: string, build_dir: string, output_dir: string, options: Generate_GLFW_Options, args: [] string) -> bool {
+    build_type := ifx options.debug_build then "Debug" else "Release";
 
     config_command: [..] string;
     array_add(*config_command, "cmake");
@@ -226,6 +228,11 @@ build_glfw :: (source_dir: string, build_dir: string, output_dir: string, debug_
 
     build_command: [..] string;
     array_add(*build_command, "cmake", "--build", cmake_config_dir);
+
+    array_add(*build_command, "--parallel");
+    if options.max_parallel_jobs > 0 {
+        array_add(*build_command, tprint("%", options.max_parallel_jobs));
+    }
 
     if OS == .WINDOWS {
         array_add(*build_command, tprint("--config=%", build_type));
