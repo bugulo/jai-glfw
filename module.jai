@@ -10,4 +10,6 @@
     #system_library,link_always "IOKit";
 }
 
+GLFW_USE_STATIC_LIB :: USE_STATIC_LIB;
+
 #load "dist/bindings.jai";

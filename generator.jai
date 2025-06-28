@@ -177,7 +177,7 @@ compile_libraries :: (options: Generate_GLFW_Options) -> success := false, error
 }
 
 BINDINGS_FOOTER :: #string END
-#if USE_STATIC_LIB {
+#if GLFW_USE_STATIC_LIB {
     #if OS == .MACOS                        glfw :: #library,no_dll "macos/libglfw3";
     #if OS == .LINUX    && CPU == .X64      glfw :: #library,no_dll "linux/x64/libglfw3";
     #if OS == .LINUX    && CPU == .ARM64    glfw :: #library,no_dll "linux/arm64/libglfw3";

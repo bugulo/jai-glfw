@@ -9,7 +9,7 @@
 // #import,file "../module.jai"(USE_STATIC_LIB=false);
 
 // Or you can load the bindings directly:
-// USE_STATIC_LIB :: false;
+// GLFW_USE_STATIC_LIB :: false;
 // #load "../dist/bindings.jai";
 
 main :: () {
