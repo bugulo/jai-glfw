@@ -86,7 +86,6 @@ compile_libraries :: (options: Generate_GLFW_Options) -> success := false, error
 
         // We add _static to static library name otherwise it would overwrite import library for the dynamic one
         success &&= copy_file(tprint("%/glfw3.lib", static_lib_dir), tprint("%/glfw3_static.lib", libs_output_dir));
-        success &&= copy_file(tprint("%/glfw3.lib", static_lib_dir), tprint("%/glfw.lib", build_dir));
 
         if !success return error = "Failed to copy libraries into output directory";
 
@@ -104,7 +103,6 @@ compile_libraries :: (options: Generate_GLFW_Options) -> success := false, error
         success &&= run_command("ln", "-s", "libglfw.so.3", tprint("%/libglfw.so", libs_output_dir)).exit_code == 0;
 
         success &&= copy_file(tprint("%/libglfw3.a", libs_dir), tprint("%/libglfw3.a", libs_output_dir));
-        success &&= copy_file(tprint("%/libglfw3.a", libs_dir), tprint("%/glfw.a", build_dir));
 
         if !success return error = "Failed to copy libraries into output directory";
 
@@ -146,7 +144,6 @@ compile_libraries :: (options: Generate_GLFW_Options) -> success := false, error
         success &&= run_command("ln", "-s", "libglfw.3.dylib", tprint("%/libglfw.dylib", libs_output_dir)).exit_code == 0;
 
         success &&= copy_file(tprint("%/libglfw3.a", uni_libs_dir), tprint("%/libglfw3.a", libs_output_dir));
-        success &&= copy_file(tprint("%/libglfw3.a", uni_libs_dir), tprint("%/glfw.a", build_dir));
 
         if !success return error = "Failed to copy libraries into output directory";
 
@@ -158,8 +155,13 @@ compile_libraries :: (options: Generate_GLFW_Options) -> success := false, error
     {
         using bindings_options;
 
-        array_add(*libnames, "glfw");
-        array_add(*libpaths, build_dir);
+        #if OS == .WINDOWS {
+            array_add(*libraries, .{filename="glfw3", identifier="glfw"});
+        } else #if OS == .LINUX || OS == .MACOS {
+            array_add(*libraries, .{filename="libglfw", identifier="glfw"});
+        }
+
+        array_add(*library_search_paths, libs_output_dir);
 
         footer = BINDINGS_FOOTER;
         generate_library_declarations = false;
