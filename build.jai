@@ -7,7 +7,7 @@ glfw_generator :: #import,file "generator.jai";
 
     current_dir := get_absolute_path("./");
 
-    options: glfw_generator.Generate_GLFW_Options;
+    options: glfw_generator.Options;
     options.source_dir = tprint("%/glfw", current_dir);
     options.output_dir = tprint("%/dist", current_dir);
 

@@ -1,5 +1,6 @@
-Generate_GLFW_Options :: struct {
-    output_dir: string; // Where to put the final platform library folders and bindings.jai
+Options :: struct {
+    source_dir: string;
+    output_dir: string;
 
     debug_build := false;
 
@@ -9,18 +10,17 @@ Generate_GLFW_Options :: struct {
     source_download := true;
     source_delete   := true; // Delete specified source_dir after generation is done (ignored if source_download is false)
 
-    source_dir:         string;
-    source_git_url:     string = "https://github.com/glfw/glfw";
-    source_git_commit:  string = "7b6aead9fb88b3623e3b3725ebb42670cbe4c579";
+    source_git_url := "https://github.com/glfw/glfw";
+    source_git_ref := "tags/3.4";
 
-    source_version_major: u8 = 3;
-    source_version_minor: u8 = 4;
-    source_version_patch: u8 = 0;
+    source_version_major := 3;
+    source_version_minor := 4;
+    source_version_patch := 0;
 
     max_parallel_jobs := 0;
 }
 
-generate :: (options: Generate_GLFW_Options) -> success := false, error := "" {
+generate :: (options: Options) -> success := false, error := "" {
     if options.source_download {
         if file_exists(options.source_dir) {
             if !delete_directory(options.source_dir)
@@ -30,8 +30,8 @@ generate :: (options: Generate_GLFW_Options) -> success := false, error := "" {
         if run_command("git", "clone", options.source_git_url, options.source_dir).exit_code != 0
             return error = "Failed to clone from specified source_git_url";
 
-        if run_command("git", "checkout", options.source_git_commit, working_directory = options.source_dir).exit_code != 0
-            return error = "Failed to checkout to specified source_git_commit";
+        if run_command("git", "checkout", options.source_git_ref, working_directory = options.source_dir).exit_code != 0
+            return error = "Failed to checkout specified source_git_ref";
     }
 
     success, error := compile_libraries(options);
@@ -44,7 +44,9 @@ generate :: (options: Generate_GLFW_Options) -> success := false, error := "" {
     return success, error;
 }
 
-compile_libraries :: (options: Generate_GLFW_Options) -> success := false, error := "" {
+#scope_file
+
+compile_libraries :: (options: Options) -> success := false, error := "" {
     source_dir := options.source_dir;
     output_dir := options.output_dir;
 
@@ -194,7 +196,7 @@ BINDINGS_FOOTER :: #string END
 }
 END
 
-build_glfw :: (source_dir: string, build_dir: string, output_dir: string, options: Generate_GLFW_Options, args: [] string) -> bool {
+build_glfw :: (source_dir: string, build_dir: string, output_dir: string, options: Options, args: [] string) -> bool {
     build_type := ifx options.debug_build then "Debug" else "Release";
 
     config_command: [..] string;
@@ -242,8 +244,6 @@ build_glfw :: (source_dir: string, build_dir: string, output_dir: string, option
 
     return run_command(..build_command).exit_code == 0;
 }
-
-#scope_file
 
 recreate_directory :: (name: string) -> bool {
     if file_exists(name) {
